@@ -108,13 +108,12 @@ def memoised[A, B](f: (A, A) => B): (A, A) => B =
 def memoised[A, B](f: Tuple2[A, A] => B): (Tuple2[A, A] => B) = 
     val hasher = scala.util.hashing.ByteswapHashing[A]()
     val hash = hasher.hash(_)
-    val intHash = scala.util.hashing.byteswap32(_)
     val memory = scala.collection.mutable.Map.empty[Int, B]
     val fun: (Tuple2[A, A] => B) = 
         inp => 
             inline def l = hash(inp._1)
             inline def r = hash(inp._2)
-            val key = intHash(l * r)
+            val key = l * r
             val stored = memory.get(key)
             if stored.isEmpty then
                 memory.update(key, f(inp))
