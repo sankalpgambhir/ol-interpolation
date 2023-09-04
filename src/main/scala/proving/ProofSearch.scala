@@ -11,6 +11,13 @@ given toOption[A]: Conversion[A, Option[A]] = Option(_)
 def prove(
     left: Option[AnnotatedFormula], 
     right: Option[AnnotatedFormula]
+) : Option[ProofStep] = memoisedProve(left, right)
+
+val memoisedProve = memoised(proveInner)
+
+private def proveInner(
+    left: Option[AnnotatedFormula], 
+    right: Option[AnnotatedFormula]
 ) : Option[ProofStep] = {
     right match
         case None => 
@@ -46,6 +53,8 @@ def prove(
                         case Not(l) =>
                             val inner = prove(left, Right(l))
                             inner.map(LeftNot(l, _))
+                        case Exists(v, inner) => None
+                        case Forall(v, inner) => None
                 case Right(f) =>
                     f match
                         case v @ Variable(name) => 
@@ -73,6 +82,8 @@ def prove(
                         case Not(l) =>
                             val inner = prove(left, Left(l))
                             inner.map(RightNot(l, _))
+                        case Exists(v, inner) => None
+                        case Forall(v, inner) => None
 }
 
 /**
@@ -84,3 +95,28 @@ def proveLeq(
     f2: Formula
 ): Option[ProofStep] =
     prove(Left(f1), Right(f2))
+
+
+// memoization utilities
+
+def memoised[A, B](f: (A, A) => B): (A, A) => B = 
+    (l, r) => memoised((inp: Tuple2[A, A]) => f(inp._1, inp._2))((l, r))
+
+/**
+  * Memoises a function on a pair in an order-agnostic manner
+  */
+def memoised[A, B](f: Tuple2[A, A] => B): (Tuple2[A, A] => B) = 
+    val hasher = scala.util.hashing.ByteswapHashing[A]()
+    val hash = hasher.hash(_)
+    val intHash = scala.util.hashing.byteswap32(_)
+    val memory = scala.collection.mutable.Map.empty[Int, B]
+    val fun: (Tuple2[A, A] => B) = 
+        inp => 
+            inline def l = hash(inp._1)
+            inline def r = hash(inp._2)
+            val key = intHash(l * r)
+            val stored = memory.get(key)
+            if stored.isEmpty then
+                memory.update(key, f(inp))
+            memory(key)
+    fun
