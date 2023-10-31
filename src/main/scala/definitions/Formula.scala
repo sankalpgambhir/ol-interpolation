@@ -3,6 +3,8 @@ package definitions
 sealed trait Formula {
     override def toString(): String = 
         this match
+            case `zero` => "0"
+            case `one` => "1"
             case Variable(name) => name
             case And(l, r) => s"($l ∧ $r)"
             case Or(l, r) => s"($l ∨ $r)"
@@ -12,6 +14,8 @@ sealed trait Formula {
         
     def toLatex: String =
         this match
+            case `zero` => "0"
+            case `one` => "1"
             case Variable(name) => name
             case And(l, r) => s"(${l.toLatex} \\land ${r.toLatex})" 
             case Or(l, r) => s"(${l.toLatex} \\lor ${r.toLatex})" 
@@ -50,3 +54,8 @@ sealed trait AnnotatedFormula {
 
 case class Left(inner: Formula) extends AnnotatedFormula
 case class Right(inner: Formula) extends AnnotatedFormula
+
+// default 0 and 1 implementations
+private val x = Variable("____")
+val zero: Formula = x /\ !x
+val one: Formula = x \/ !x

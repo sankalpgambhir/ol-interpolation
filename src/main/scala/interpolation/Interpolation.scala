@@ -69,9 +69,13 @@ def interpOLate(
             gamma1 match
                 case Some(Right(Not(`phi`))) => interpOLate(Left(phi), gamma2, premise)
                 case _ => interpOLate(gamma1, Left(phi), premise)
-        case Deduplicate(premise) => // gamma1 == None or gamma2 = None
-            gamma1.orElse(gamma2).get.inner
-            
+        case Deduplicate(premise) => 
+            // gamma1 == None or gamma2 = None
+            // the interpolant can be 0 or 1 depending on which side was preserved in the duplication
+            // the interpolant can also be chosen to be the duplicated formula
+            gamma1 match
+                case None => one
+                case Some(_) => zero
 
 
 /**
