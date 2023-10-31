@@ -16,8 +16,8 @@ sealed trait Formula {
             case And(l, r) => s"(${l.toLatex} \\land ${r.toLatex})" 
             case Or(l, r) => s"(${l.toLatex} \\lor ${r.toLatex})" 
             case Not(l) => s"\\neg${l.toLatex}" 
-            case Forall(v, inner) => s"⋀${v.toLatex}. ${inner.toLatex}"
-            case Exists(v, inner) => s"⋁${v.toLatex}. ${inner.toLatex}"
+            case Forall(v, inner) => s"\bigwedge ${v.toLatex}. ${inner.toLatex}"
+            case Exists(v, inner) => s"\bigvee ${v.toLatex}. ${inner.toLatex}"
 }
 
 case class Variable(name: String) extends Formula

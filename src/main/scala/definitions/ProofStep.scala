@@ -170,7 +170,7 @@ extension (p: ProofStep) {
                 \\RightLabel{\\text{LeftOr}}
                 \\BinaryInfC{$dollar${seq.toLatex}$dollar}
                 """
-                (inner1._1 + inner2._2 + st, seq)
+                (inner1._1 + inner2._1 + st, seq)
             case RightOr1(phi, psi, premise1) =>
                 val inner = premise1.print
                 val seq = inner._2 - Right(phi) + Right(phi \/ psi)
