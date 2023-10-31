@@ -11,10 +11,11 @@ given toOption[A]: Conversion[A, Option[A]] = Option(_)
 def prove(
     left: Option[AnnotatedFormula], 
     right: Option[AnnotatedFormula]
-) : Option[ProofStep] = 
+) : Option[ProofStep] =
     val p1 = memoisedProve(left, right)
     lazy val p2 = memoisedProve(right, left)
     p1.orElse(p2)
+    
 
 val memoisedProve = memoised(proveInner, None)
 
@@ -22,13 +23,16 @@ private def proveInner(
     left: Option[AnnotatedFormula], 
     right: Option[AnnotatedFormula]
 ) : Option[ProofStep] = {
-    right match
-        case None => 
-            left match
-                case None => None
-                case _ => prove(right, left)
-        case Some(value) => 
-            value match
+    (left, right) match
+        case (None, None) => None
+        case (None, Some(_)) =>
+            // single formula, duplicate
+            prove(right, right).map(Deduplicate(_))
+        case (Some(_), None) =>
+            // single formula, duplicate
+            prove(left, left).map(Deduplicate(_))
+        case (Some(_), Some(r)) =>
+            r match
                 case Left(f) => 
                     f match
                         case v @ Variable(name) => 

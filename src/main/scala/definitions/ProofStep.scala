@@ -64,31 +64,42 @@ case class LeftNot(phi: Formula, premise: ProofStep) extends ProofStep
   *   Π, ~ϕ^R
   */
 case class RightNot(phi: Formula, premise: ProofStep) extends ProofStep
+/**
+  *    Π, Π
+  * ----------- LeftNot
+  *     Π
+  */
+case class Deduplicate(premise: ProofStep) extends ProofStep
+
 
 /**
   * Representation of an OL sequent, only used internally for printing.
   *
   * @param el initial set of elements, all but 2 discarded.
   */
-class Sequent(el: Set[AnnotatedFormula]) {
+class Sequent(el: List[AnnotatedFormula]) {
     val maxSize = 2
-    val elems: Set[AnnotatedFormula] = el.take(maxSize)
+    val elems: List[AnnotatedFormula] = el.take(maxSize)
 
     infix def +(f: AnnotatedFormula): Sequent =
-        val newElems = elems + f
+        val newElems = f :: elems
         if newElems.size > maxSize then this else Sequent(newElems)
     infix def -(f: AnnotatedFormula): Sequent =
-        Sequent(elems - f)
+        elems match
+          case `f` :: next => Sequent(next)
+          case other :: `f` :: Nil => Sequent(other :: Nil)
+          case _ => Sequent(elems)
+        
 
     override def toString: String = 
-        elems.toList match {
+        elems match {
             case Nil => "∅"
             case f :: Nil => f.toString
             case f1 :: f2 :: Nil => s"$f1, $f2"
             case _ => throw UnreachableCaseException
         }
     def toLatex: String = 
-        elems.toList match {
+        elems match {
             case Nil => "\\emptyset"
             case f :: Nil => f.toLatex
             case f1 :: f2 :: Nil => s"${f1.toLatex}, ${f2.toLatex}"
@@ -125,7 +136,7 @@ extension (p: ProofStep) {
                 \\RightLabel{\\text{Hyp}}
                 \\UnaryInfC{$dollar${Left(phi).toLatex}, ${Right(phi).toLatex}$dollar}
                 """
-                (st, Sequent(Set(Left(phi), Right(phi))))
+                (st, Sequent(List(Left(phi), Right(phi))))
             case Weaken(delta, premise) =>
                 val inner = premise.print
                 val seq = delta match {
@@ -200,6 +211,15 @@ extension (p: ProofStep) {
                 val seq = inner._2 - Left(phi) + Right(!phi)
                 val st = s"""
                 \\RightLabel{\\text{RightNot}}
+                \\UnaryInfC{$dollar${seq.toLatex}$dollar}
+                """
+                (inner._1 + st, seq)
+            case Deduplicate(premise) =>
+                val inner = premise.print
+                val pi = inner._2.elems.head
+                val seq = inner._2 - pi
+                val st = s"""
+                \\RightLabel{\\text{Deduplicate}}
                 \\UnaryInfC{$dollar${seq.toLatex}$dollar}
                 """
                 (inner._1 + st, seq)
