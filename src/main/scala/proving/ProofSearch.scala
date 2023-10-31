@@ -11,9 +11,12 @@ given toOption[A]: Conversion[A, Option[A]] = Option(_)
 def prove(
     left: Option[AnnotatedFormula], 
     right: Option[AnnotatedFormula]
-) : Option[ProofStep] = memoisedProve(left, right)
+) : Option[ProofStep] = 
+    val p1 = memoisedProve(left, right)
+    lazy val p2 = memoisedProve(right, left)
+    p1.orElse(p2)
 
-val memoisedProve = memoised(proveInner)
+val memoisedProve = memoised(proveInner, None)
 
 private def proveInner(
     left: Option[AnnotatedFormula], 
@@ -99,23 +102,47 @@ def proveLeq(
 
 // memoization utilities
 
-def memoised[A, B](f: (A, A) => B): (A, A) => B = 
-    (l, r) => memoised((inp: Tuple2[A, A]) => f(inp._1, inp._2))((l, r))
+case class MemoizationStats(hits: Int, miss: Int, faulted: Int):
+    def withHit = MemoizationStats(hits + 1, miss, faulted)
+    def withMiss = MemoizationStats(hits, miss + 1, faulted)
+    def withFault = MemoizationStats(hits, miss, faulted + 1)
 
-/**
-  * Memoises a function on a pair in an order-agnostic manner
-  */
-def memoised[A, B](f: Tuple2[A, A] => B): (Tuple2[A, A] => B) = 
+class Memoised[A, B](f: Tuple2[A, A] => B, default: B) extends Function1[Tuple2[A, A], B]:
     val hasher = scala.util.hashing.ByteswapHashing[A]()
     val hash = hasher.hash(_)
+    val visited = scala.collection.mutable.Set.empty[Int]
     val memory = scala.collection.mutable.Map.empty[Int, B]
+    var stats = MemoizationStats(0, 0, 0)
+
+    def this(f: (A, A) => B, default: B) = this(f.tupled, default)
+
     val fun: (Tuple2[A, A] => B) = 
         inp => 
             inline def l = hash(inp._1)
             inline def r = hash(inp._2)
-            val key = l * r
+            val key = l * 3 + r * 5
+            val seen = visited.contains(key)
             val stored = memory.get(key)
             if stored.isEmpty then
-                memory.update(key, f(inp))
+                visited.add(key)
+                if seen then
+                    stats = stats.withFault
+                    memory.update(key, default)
+                else 
+                    stats = stats.withMiss
+                    memory.update(key, f(inp))
+            else
+                stats = stats.withHit
+                    
             memory(key)
-    fun
+
+    def apply(v1: (A, A)): B = fun(v1)
+
+def memoised[A, B](f: (A, A) => B, default: B): Memoised[A, B] = 
+    Memoised(f, default)
+
+/**
+  * Memoises a function on a pair
+  */
+def memoised[A, B](f: Tuple2[A, A] => B, default: B): Memoised[A, B] = 
+    Memoised(f, default)
