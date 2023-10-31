@@ -15,7 +15,7 @@ sealed trait Formula {
             case Variable(name) => name
             case And(l, r) => s"(${l.toLatex} \\land ${r.toLatex})" 
             case Or(l, r) => s"(${l.toLatex} \\lor ${r.toLatex})" 
-            case Not(l) => s"\\neg${l.toLatex}" 
+            case Not(l) => s"\\neg ${l.toLatex}" 
             case Forall(v, inner) => s"\bigwedge ${v.toLatex}. ${inner.toLatex}"
             case Exists(v, inner) => s"\bigvee ${v.toLatex}. ${inner.toLatex}"
 }
@@ -34,6 +34,8 @@ extension (f1: Formula) {
 }
 
 sealed trait AnnotatedFormula {
+    val inner: Formula
+
     override def toString(): String = // maybe a cleaner way to write?
         this match {
             case Left(f) =>  s"${f}^L"
@@ -46,5 +48,5 @@ sealed trait AnnotatedFormula {
         }
 }
 
-case class Left(f: Formula) extends AnnotatedFormula
-case class Right(f: Formula) extends AnnotatedFormula
+case class Left(inner: Formula) extends AnnotatedFormula
+case class Right(inner: Formula) extends AnnotatedFormula

@@ -69,6 +69,9 @@ def interpOLate(
             gamma1 match
                 case Some(Right(Not(`phi`))) => interpOLate(Left(phi), gamma2, premise)
                 case _ => interpOLate(gamma1, Left(phi), premise)
+        case Deduplicate(premise) => // gamma1 == None or gamma2 = None
+            gamma1.orElse(gamma2).get.inner
+            
 
 
 /**
